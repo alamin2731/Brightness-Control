@@ -31,7 +31,7 @@ The Brightness Control Program is a simple Python application that allows you to
 
 You can download the source code for the Brightness Control Program using the following link:
 
-[Download Brightness Control Program](https://drive.google.com/file/d/1VCYH425t9UCD_agTqlYKuXXy8nB-QMJM/view)
+[Download Brightness Control Program](https://raw.githubusercontent.com/alamin2731/Brightness-Control/main/dist/Brightness-controll.exe)
 
 ## Contributions
 
