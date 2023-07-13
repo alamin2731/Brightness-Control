@@ -1,111 +1,147 @@
 import tkinter as tk
 from tkinter import ttk
 import wmi
+import ctypes
 
-def set_brightness(level):
-    # Connect to the WMI service
-    c = wmi.WMI(namespace='wmi')
+class BrightnessController:
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.title("Brightness Control")
+        self.window.geometry("400x300")
+        self.window.resizable(True, False)
+        self.window.configure(bg="#303030")
+        
+        self.create_styles()
+        self.create_gui_elements()
 
-    # Get the active display
-    brightness_methods = c.WmiMonitorBrightnessMethods()[0]
-    brightness_methods.WmiSetBrightness(level, 0)
+        if not self.check_wmi_compatibility():
+            self.display_wmi_error()
+            return
 
-def update_brightness(event):
-    brightness_level = custom_brightness_slider.get()
-    set_brightness(brightness_level)
-    update_brightness_label(brightness_level)
+        self.update_brightness_label(self.get_brightness())
+        self.window.mainloop()
 
-def increase_brightness():
-    current_brightness = get_brightness()
-    brightness_level = min(100, current_brightness + 10)
-    set_brightness(brightness_level)
-    update_brightness_label(brightness_level)
-    custom_brightness_slider.set(brightness_level)
+    def create_styles(self):
+        style = ttk.Style()
+        style.configure("TButton", font=("Arial", 12))
+        style.configure("TLabel", font=("Arial", 12))
 
-def decrease_brightness():
-    current_brightness = get_brightness()
-    brightness_level = max(0, current_brightness - 10)
-    set_brightness(brightness_level)
-    update_brightness_label(brightness_level)
+    def create_gui_elements(self):
+        title_label = ttk.Label(self.window, text="Brightness Control", style="TLabel", background="#303030", foreground="white")
+        title_label.pack(pady=10)
 
-def get_brightness():
-    # Connect to the WMI service
-    c = wmi.WMI(namespace='wmi')
+        brightness_buttons_frame = tk.Frame(self.window, bg="#303030")
+        brightness_buttons_frame.pack()
 
-    # Get the active display
-    brightness = c.WmiMonitorBrightness()[0]
-    return brightness.CurrentBrightness
+        increase_button = ttk.Button(brightness_buttons_frame, text="Increase Brightness", command=self.increase_brightness, style="TButton")
+        increase_button.pack(side=tk.LEFT, padx=5)
 
-def update_brightness_label(level):
-    brightness_label.config(text=f"Brightness: {level}%", foreground="white", background="#303030")
-    brightness_preview_frame.config(bg="#303030", width=int(level * 2))
+        decrease_button = ttk.Button(brightness_buttons_frame, text="Decrease Brightness", command=self.decrease_brightness, style="TButton")
+        decrease_button.pack(side=tk.LEFT, padx=5)
 
-def change_brightness_mode(event):
-    mode = brightness_mode_combo.get()
-    if mode == "Movie":
-        set_brightness(80)
-        update_brightness_label(80)
-        custom_brightness_slider.set(80)
-    elif mode == "Work":
-        set_brightness(60)
-        update_brightness_label(60)
-        custom_brightness_slider.set(60)
-    elif mode == "Gaming":
-        set_brightness(90)
-        update_brightness_label(90)
-        custom_brightness_slider.set(90)
-    elif mode == "Reading":
-        set_brightness(70)
-        update_brightness_label(70)
-        custom_brightness_slider.set(70)
-    # Add more modes here
+        custom_brightness_label = ttk.Label(self.window, text="Custom Brightness", style="TLabel", background="#303030", foreground="white")
+        custom_brightness_label.pack()
 
-# Create the main window
-window = tk.Tk()
-window.title("Brightness Control")
-window.geometry("400x300")
-window.resizable(True, False)
-window.configure(bg="#303030")
+        self.custom_brightness_slider = ttk.Scale(self.window, from_=0, to=100, orient=tk.HORIZONTAL, length=200, command=self.update_brightness)
+        self.custom_brightness_slider.pack()
 
-# Create styles
-style = ttk.Style()
-style.configure("TButton", font=("Arial", 12))
-style.configure("TLabel", font=("Arial", 12))
+        brightness_mode_label = ttk.Label(self.window, text="Brightness Modes", style="TLabel", background="#303030", foreground="white")
+        brightness_mode_label.pack(pady=10)
 
-# Create GUI elements
-title_label = ttk.Label(window, text="Brightness Control", style="TLabel", background="#303030", foreground="white")
-title_label.pack(pady=10)
+        brightness_modes = ["Movie", "Work", "Gaming", "Reading"]
+        self.brightness_mode_combo = ttk.Combobox(self.window, values=brightness_modes, state="readonly")
+        self.brightness_mode_combo.current(0)
+        self.brightness_mode_combo.bind("<<ComboboxSelected>>", self.change_brightness_mode)
+        self.brightness_mode_combo.pack()
 
-brightness_buttons_frame = tk.Frame(window, bg="#303030")
-brightness_buttons_frame.pack()
+        self.brightness_label = ttk.Label(self.window, text="Brightness: --", style="TLabel", background="#303030", foreground="white")
+        self.brightness_label.pack(pady=10)
 
-increase_button = ttk.Button(brightness_buttons_frame, text="Increase Brightness", command=increase_brightness, style="TButton")
-increase_button.pack(side=tk.LEFT, padx=5)
+        self.brightness_preview_frame = tk.Frame(self.window, bg="#303030", width=0, height=20)
+        self.brightness_preview_frame.pack()
 
-decrease_button = ttk.Button(brightness_buttons_frame, text="Decrease Brightness", command=decrease_brightness, style="TButton")
-decrease_button.pack(side=tk.LEFT, padx=5)
+    def check_wmi_compatibility(self):
+        try:
+            c = wmi.WMI(namespace='root\\wmi')
+            brightness_methods = c.WmiMonitorBrightnessMethods()
+            brightness = c.WmiMonitorBrightness()
+            return True
+        except Exception as e:
+            print(f"Error accessing WMI service: {e}")
+            return False
 
-custom_brightness_label = ttk.Label(window, text="Custom Brightness", style="TLabel", background="#303030", foreground="white")
-custom_brightness_label.pack()
+    def display_wmi_error(self):
+        error_label = ttk.Label(self.window, text="WMI service not available on this system.", style="TLabel", background="#303030", foreground="red")
+        error_label.pack(pady=10)
 
-custom_brightness_slider = ttk.Scale(window, from_=0, to=100, orient=tk.HORIZONTAL, length=200, command=update_brightness)
-custom_brightness_slider.pack()
+    def set_brightness(self, level):
+        try:
+            c = wmi.WMI(namespace='wmi')
+            brightness_methods = c.WmiMonitorBrightnessMethods()[0]
+            brightness_methods.WmiSetBrightness(level, 0)
+            return
+        except Exception as e:
+            print(f"WMI Error: {e}")
+        
+        try:
+            registry_path = r"Software\Microsoft\Windows\CurrentVersion\Policies\System"
+            brightness_key = "ACBrightness"
+            brightness = level * 255 // 100
+            reg = ctypes.windll.advapi32.RegOpenKeyExW(ctypes.c_void_p(0x80000002), registry_path, 0, ctypes.c_uint32(0x20019), ctypes.pointer(ctypes.c_void_p()))
+            ctypes.windll.advapi32.RegSetValueExW(reg, brightness_key, 0, ctypes.c_uint32(1), ctypes.pointer(ctypes.c_uint8(int(brightness))), 1)
+            ctypes.windll.advapi32.RegCloseKey(reg)
+        except Exception as e:
+            print(f"Alternative Method 2 Error: {e}")
 
-brightness_mode_label = ttk.Label(window, text="Brightness Modes", style="TLabel", background="#303030", foreground="white")
-brightness_mode_label.pack(pady=10)
+    def get_brightness(self):
+        try:
+            c = wmi.WMI(namespace='wmi')
+            brightness = c.WmiMonitorBrightness()[0]
+            return brightness.CurrentBrightness
+        except Exception as e:
+            print(f"Error getting brightness: {e}")
+            return 0
 
-brightness_modes = ["Movie", "Work", "Gaming", "Reading"]
-brightness_mode_combo = ttk.Combobox(window, values=brightness_modes, state="readonly")
-brightness_mode_combo.current(0)
-brightness_mode_combo.bind("<<ComboboxSelected>>", change_brightness_mode)
-brightness_mode_combo.pack()
+    def update_brightness_label(self, level):
+        self.brightness_label.config(text=f"Brightness: {level}%", foreground="white", background="#303030")
+        self.brightness_preview_frame.config(bg="#303030", width=int(level * 2))
 
-brightness_label = ttk.Label(window, text="Brightness: --", style="TLabel", background="#303030", foreground="white")
-brightness_label.pack(pady=10)
+    def update_brightness(self, event):
+        brightness_level = self.custom_brightness_slider.get()
+        self.set_brightness(brightness_level)
+        self.update_brightness_label(brightness_level)
 
-brightness_preview_frame = tk.Frame(window, bg="#303030", width=0, height=20)
-brightness_preview_frame.pack()
+    def increase_brightness(self):
+        current_brightness = self.get_brightness()
+        brightness_level = min(100, current_brightness + 10)
+        self.set_brightness(brightness_level)
+        self.update_brightness_label(brightness_level)
+        self.custom_brightness_slider.set(brightness_level)
 
-window.mainloop()
-#use this to create .exe file with icon
+    def decrease_brightness(self):
+        current_brightness = self.get_brightness()
+        brightness_level = max(0, current_brightness - 10)
+        self.set_brightness(brightness_level)
+        self.update_brightness_label(brightness_level)
+        self.custom_brightness_slider.set(brightness_level)
+
+    def change_brightness_mode(self, event):
+        mode = self.brightness_mode_combo.get()
+        if mode == "Movie":
+            self.set_brightness(80)
+            self.update_brightness_label(80)
+            self.custom_brightness_slider.set(80)
+        elif mode == "Work":
+            self.set_brightness(60)
+            self.update_brightness_label(60)
+            self.custom_brightness_slider.set(60)
+        elif mode == "Gaming":
+            self.set_brightness(90)
+            self.update_brightness_label(90)
+            self.custom_brightness_slider.set(90)
+        elif mode == "Reading":
+            self.set_brightness(70)
+            self.update_brightness_label(70)
+            self.custom_brightness_slider.set(70)
+BrightnessController()
 #pyinstaller --onefile --noconsole --name=Brightness-control brightness_control.py
