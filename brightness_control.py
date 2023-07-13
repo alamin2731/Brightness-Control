@@ -10,15 +10,17 @@ class BrightnessController:
         self.window.geometry("400x300")
         self.window.resizable(True, False)
         self.window.configure(bg="#303030")
-        
+
         self.create_styles()
         self.create_gui_elements()
 
-        if not self.check_wmi_compatibility():
+        self.check_wmi_compatibility()
+        if not self.is_wmi_compatible:
             self.display_wmi_error()
-            return
+        else:
+            self.custom_brightness_slider.configure(state="normal")
+            self.update_brightness_label(self.get_brightness())
 
-        self.update_brightness_label(self.get_brightness())
         self.window.mainloop()
 
     def create_styles(self):
@@ -42,7 +44,7 @@ class BrightnessController:
         custom_brightness_label = ttk.Label(self.window, text="Custom Brightness", style="TLabel", background="#303030", foreground="white")
         custom_brightness_label.pack()
 
-        self.custom_brightness_slider = ttk.Scale(self.window, from_=0, to=100, orient=tk.HORIZONTAL, length=200, command=self.update_brightness)
+        self.custom_brightness_slider = ttk.Scale(self.window, from_=0, to=100, orient=tk.HORIZONTAL, length=200, command=self.update_brightness, state="disabled")
         self.custom_brightness_slider.pack()
 
         brightness_mode_label = ttk.Label(self.window, text="Brightness Modes", style="TLabel", background="#303030", foreground="white")
@@ -65,14 +67,19 @@ class BrightnessController:
             c = wmi.WMI(namespace='root\\wmi')
             brightness_methods = c.WmiMonitorBrightnessMethods()
             brightness = c.WmiMonitorBrightness()
-            return True
+            self.is_wmi_compatible = True
         except Exception as e:
             print(f"Error accessing WMI service: {e}")
-            return False
+            self.is_wmi_compatible = False
 
     def display_wmi_error(self):
         error_label = ttk.Label(self.window, text="WMI service not available on this system.", style="TLabel", background="#303030", foreground="red")
         error_label.pack(pady=10)
+
+    def hide_wmi_error(self):
+        if self.error_label:
+            self.error_label.destroy()
+            self.error_label = None
 
     def set_brightness(self, level):
         try:
@@ -82,7 +89,7 @@ class BrightnessController:
             return
         except Exception as e:
             print(f"WMI Error: {e}")
-        
+
         try:
             registry_path = r"Software\Microsoft\Windows\CurrentVersion\Policies\System"
             brightness_key = "ACBrightness"
@@ -143,5 +150,6 @@ class BrightnessController:
             self.set_brightness(70)
             self.update_brightness_label(70)
             self.custom_brightness_slider.set(70)
+        # Add more modes here
 BrightnessController()
 #pyinstaller --onefile --noconsole --name=Brightness-control brightness_control.py
