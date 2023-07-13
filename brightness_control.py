@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import PhotoImage
 import wmi
 
 def set_brightness(level):
@@ -63,9 +62,6 @@ def change_brightness_mode(event):
 
 # Create the main window
 window = tk.Tk()
-#if you use visual studio code then make sure that you add the full path of the icon file
-icon_image = PhotoImage(file="C:/Users/Alami/OneDrive/Documents/GitHub/Brightness-Control/sun.ico")
-window.iconphoto(True, icon_image)
 window.title("Brightness Control")
 window.geometry("400x300")
 window.resizable(True, False)
@@ -112,4 +108,4 @@ brightness_preview_frame.pack()
 
 window.mainloop()
 #use this to create .exe file with icon
-#pyinstaller --onefile --noconsole --icon=sun.ico --name=Brightness-controll brightness_control.py
+#pyinstaller --onefile --noconsole --name=Brightness-control brightness_control.py
